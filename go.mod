@@ -1,3 +1,3 @@
-module github.com/LYZhelloworld/go-gateway
+module github.com/LYZhelloworld/gateway
 
 go 1.12
