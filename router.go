@@ -22,13 +22,17 @@ type routerConfig struct {
 // ServeHTTP serves HTTP requests.
 func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := &Context{
-		Request: req,
+		Request:        req,
+		StatusCode:     http.StatusOK,
+		Response:       nil,
+		Header:         map[string][]string{},
+		responseWriter: w,
 	}
 
 	config := r.endpointConfig[req.URL.RawPath]
 	if config == nil {
 		r.generalResponse(ctx, http.StatusNotFound)
-		_ = r.write(w, ctx)
+		ctx.write()
 		return
 	}
 
@@ -52,29 +56,22 @@ func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	default:
 		r.generalResponse(ctx, http.StatusMethodNotAllowed)
-		_ = r.write(w, ctx)
+		ctx.write()
 		return
 	}
 	if handler == nil {
 		r.generalResponse(ctx, http.StatusNotFound)
-		_ = r.write(w, ctx)
+		ctx.write()
 		return
 	}
 	handler(ctx)
-	_ = r.write(w, ctx)
-	return
-}
-
-// write writes response to the http.ResponseWriter.
-func (r *router) write(w http.ResponseWriter, context *Context) (err error) {
-	w.WriteHeader(context.statusCode)
-	_, err = w.Write(context.response)
+	ctx.write()
 	return
 }
 
 // generalResponse generates error messages depending on the status code.
 func (r *router) generalResponse(context *Context, statusCode int) {
-	context.SetStatusCode(statusCode)
+	context.StatusCode = statusCode
 	if handler, ok := r.errorConfig[statusCode]; ok {
 		(*handler)(context)
 		return

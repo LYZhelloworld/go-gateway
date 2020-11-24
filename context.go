@@ -1,6 +1,8 @@
 package gateway
 
 import (
+	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -8,18 +10,41 @@ import (
 type Context struct {
 	// Request is the pointer to the http.Request.
 	Request *http.Request
-	// statusCode holds the status code of the response.
-	statusCode int
-	// response holds the response body.
-	response []byte
+	// StatusCode holds the status code of the response.
+	StatusCode int
+	// Response holds the response body.
+	Response io.ReadCloser
+	// Header hold HTTP headers in the response.
+	Header http.Header
+	//
+
+	// responseWriter is the http.ResponseWriter from the handler.
+	responseWriter http.ResponseWriter
+	// isWritten is a flag shows whether the response has been written to the http.ResponseWriter.
+	isWritten bool
 }
 
-// SetStatusCode sets status code.
-func (c *Context) SetStatusCode(code int) {
-	c.statusCode = code
-}
+// write writes response to the http.ResponseWriter.
+func (c *Context) write() {
+	if !c.isWritten {
+		c.isWritten = true
+		w := c.responseWriter
 
-// SetResponse sets response.
-func (c *Context) SetResponse(resp []byte) {
-	c.response = resp
+		for key, values := range c.Header {
+			w.Header().Del(key)
+			for _, value := range values {
+				w.Header().Add(key, value)
+			}
+		}
+
+		w.WriteHeader(c.StatusCode)
+		res, err := ioutil.ReadAll(c.Response)
+		if err != nil {
+			panic(err)
+		}
+		_, err = w.Write(res)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
