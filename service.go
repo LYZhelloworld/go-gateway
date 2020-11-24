@@ -27,7 +27,14 @@ type ServiceHandler func(context *Context)
 type ServiceName string
 
 func (n *ServiceName) split() []string {
-	return strings.Split(string(*n), ".")
+	if *n == "" {
+		return nil
+	}
+	split := strings.Split(string(*n), ".")
+	for i, v := range split {
+		split[i] = strings.TrimSpace(v)
+	}
+	return split
 }
 
 // match matches a name with the current service.
@@ -38,13 +45,14 @@ func (n *Service) match(name ServiceName) (ok bool, distance int) {
 	if thisName == baseServiceHandler {
 		thisName = ""
 	}
+	thisName = ServiceName(strings.TrimSpace(string(thisName)))
 	this := thisName.split()
 	other := name.split()
 	lenThis := len(this)
 	lenOther := len(other)
 	distance = lenOther - lenThis
 	if lenOther < lenThis {
-		// the service name is too generic
+		// their service name is too generic
 		ok = false
 		return
 	}
