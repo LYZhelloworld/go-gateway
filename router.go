@@ -2,8 +2,10 @@ package gateway
 
 import "net/http"
 
+// router is a map with endpoint as key and routerConfig as value.
 type router map[string]*routerConfig
 
+// routerConfig holds handlers for different methods.
 type routerConfig struct {
 	getHandler    ServiceHandler
 	postHandler   ServiceHandler

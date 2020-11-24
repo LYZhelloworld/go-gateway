@@ -55,6 +55,14 @@ func (s *Server) Run(addr string) error {
 	return svr.ListenAndServe()
 }
 
+// matchService finds service that is the closest to the given one.
+// For example, if the given service is "foo.bar" and there are services like:
+//
+// foo, foo.bar.baz, foo.baz
+//
+// The service "foo" will be matched.
+// The service "foo.bar.baz" is more specific than the given one.
+// The service "foo.baz" has different sub-service "baz".
 func (s *Server) matchService(name ServiceName) *Service {
 	var found *Service = nil
 	distance := int(^uint(0) >> 1) // largest int
