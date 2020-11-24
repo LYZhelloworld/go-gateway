@@ -14,3 +14,11 @@ type EndpointConfig map[string]*routerConfig
 
 // ErrorConfig is a map that matches status codes to ServiceHandler.
 type ErrorConfig map[int]*ServiceHandler
+
+// routerConfig holds routerHandler for different methods.
+type routerConfig struct {
+	getHandler    *Service
+	postHandler   *Service
+	putHandler    *Service
+	deleteHandler *Service
+}

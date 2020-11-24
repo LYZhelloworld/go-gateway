@@ -34,24 +34,27 @@ func (s *Server) Run(addr string) error {
 	}
 
 	// parse Services
-	s.router = &router{endpointConfig: make(EndpointConfig), errorConfig: *s.ErrorConfig}
+	s.router = &router{
+		config:      make(EndpointConfig),
+		errorConfig: *s.ErrorConfig,
+	}
 	for endpoint, name := range *(s.Config) {
 		service := s.matchService(name)
 		if service == nil {
 			panic(fmt.Sprintf("service not found: %s", name))
 		}
-		if s.router.endpointConfig[endpoint.Path] == nil {
-			s.router.endpointConfig[endpoint.Path] = &routerConfig{}
+		if s.router.config[endpoint.Path] == nil {
+			s.router.config[endpoint.Path] = &routerConfig{}
 		}
 		switch endpoint.Method {
 		case http.MethodGet:
-			s.router.endpointConfig[endpoint.Path].getHandler = service.Handler
+			s.router.config[endpoint.Path].getHandler = service
 		case http.MethodPost:
-			s.router.endpointConfig[endpoint.Path].postHandler = service.Handler
+			s.router.config[endpoint.Path].postHandler = service
 		case http.MethodPut:
-			s.router.endpointConfig[endpoint.Path].putHandler = service.Handler
+			s.router.config[endpoint.Path].putHandler = service
 		case http.MethodDelete:
-			s.router.endpointConfig[endpoint.Path].deleteHandler = service.Handler
+			s.router.config[endpoint.Path].deleteHandler = service
 		default:
 			panic(fmt.Sprintf("invalid method: %s", endpoint.Method))
 		}

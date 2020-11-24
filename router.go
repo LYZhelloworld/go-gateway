@@ -4,19 +4,10 @@ import "net/http"
 
 // router holds handlers of all endpoints and other configs.
 type router struct {
-	// endpointConfig is a map with endpoint as key and routerConfig as value.
-	endpointConfig EndpointConfig
-
+	// config is a map with endpoint as key and routerConfig as value.
+	config EndpointConfig
 	// errorConfig is a map with status code as key and ServiceHandler as value.
 	errorConfig ErrorConfig
-}
-
-// routerConfig holds handlers for different methods.
-type routerConfig struct {
-	getHandler    ServiceHandler
-	postHandler   ServiceHandler
-	putHandler    ServiceHandler
-	deleteHandler ServiceHandler
 }
 
 // ServeHTTP serves HTTP requests.
@@ -29,7 +20,7 @@ func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		responseWriter: w,
 	}
 
-	config := r.endpointConfig[req.URL.RawPath]
+	config := r.config[req.URL.RawPath]
 	if config == nil {
 		r.generalResponse(ctx, http.StatusNotFound)
 		ctx.write()
@@ -40,19 +31,23 @@ func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		if config.getHandler != nil {
-			handler = config.getHandler
+			ctx.serviceName = config.getHandler.Name
+			handler = config.getHandler.Handler
 		}
 	case http.MethodPost:
 		if config.postHandler != nil {
-			handler = config.postHandler
+			ctx.serviceName = config.postHandler.Name
+			handler = config.postHandler.Handler
 		}
 	case http.MethodPut:
 		if config.putHandler != nil {
-			handler = config.putHandler
+			ctx.serviceName = config.putHandler.Name
+			handler = config.putHandler.Handler
 		}
 	case http.MethodDelete:
 		if config.deleteHandler != nil {
-			handler = config.deleteHandler
+			ctx.serviceName = config.deleteHandler.Name
+			handler = config.deleteHandler.Handler
 		}
 	default:
 		r.generalResponse(ctx, http.StatusMethodNotAllowed)
