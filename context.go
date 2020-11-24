@@ -12,7 +12,7 @@ type Context struct {
 	StatusCode int
 	// Response holds the response body.
 	Response []byte
-	// Header hold HTTP headers in the response.
+	// Header holds HTTP headers in the response.
 	Header http.Header
 
 	// serviceName is the name of the service of the request.
