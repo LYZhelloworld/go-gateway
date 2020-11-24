@@ -7,9 +7,10 @@ import (
 
 // Server is a struct for HTTP router.
 type Server struct {
-	Config   *Config
-	Services []*Service
-	router   *router
+	Config      *Config
+	ErrorConfig *ErrorConfig
+	Services    []*Service
+	router      *router
 }
 
 // RegisterService registers a service.
@@ -20,12 +21,20 @@ func (s *Server) RegisterService(service *Service) *Server {
 
 // Run starts the server with the current Config.
 func (s *Server) Run(addr string) error {
-	if s.Config == nil || s.Services == nil {
-		panic("empty configuration")
+	if s.Config == nil {
+		s.Config = &Config{}
+	}
+
+	if s.ErrorConfig == nil {
+		s.ErrorConfig = &ErrorConfig{}
+	}
+
+	if s.Services == nil {
+		s.Services = []*Service{}
 	}
 
 	// parse Services
-	s.router = &router{endpointConfig: make(map[string]*routerConfig)}
+	s.router = &router{endpointConfig: make(EndpointConfig), errorConfig: *s.ErrorConfig}
 	for endpoint, name := range *(s.Config) {
 		service := s.matchService(name)
 		if service == nil {

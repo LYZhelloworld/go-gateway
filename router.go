@@ -5,10 +5,10 @@ import "net/http"
 // router holds handlers of all endpoints and other configs.
 type router struct {
 	// endpointConfig is a map with endpoint as key and routerConfig as value.
-	endpointConfig map[string]*routerConfig
+	endpointConfig EndpointConfig
 
 	// errorConfig is a map with status code as key and ServiceHandler as value.
-	errorConfig map[int]*ServiceHandler // TODO
+	errorConfig ErrorConfig
 }
 
 // routerConfig holds handlers for different methods.
