@@ -22,7 +22,7 @@ type Service struct {
 }
 
 // ServiceHandler is a function that handles the service.
-type ServiceHandler func(c *Context)
+type ServiceHandler func(context *Context)
 
 type ServiceName string
 

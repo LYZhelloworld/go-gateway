@@ -9,7 +9,7 @@ import (
 type Server struct {
 	Config   *Config
 	Services []*Service
-	router   router
+	router   *router
 }
 
 // RegisterService registers a service.
@@ -25,24 +25,24 @@ func (s *Server) Run(addr string) error {
 	}
 
 	// parse Services
-	s.router = make(router)
+	s.router = &router{endpointConfig: make(map[string]*routerConfig)}
 	for endpoint, name := range *(s.Config) {
 		service := s.matchService(name)
 		if service == nil {
 			panic(fmt.Sprintf("service not found: %s", name))
 		}
-		if s.router[endpoint.Path] == nil {
-			s.router[endpoint.Path] = &routerConfig{}
+		if s.router.endpointConfig[endpoint.Path] == nil {
+			s.router.endpointConfig[endpoint.Path] = &routerConfig{}
 		}
 		switch endpoint.Method {
-		case Get:
-			s.router[endpoint.Path].getHandler = service.Handler
-		case Post:
-			s.router[endpoint.Path].postHandler = service.Handler
-		case Put:
-			s.router[endpoint.Path].putHandler = service.Handler
-		case Delete:
-			s.router[endpoint.Path].deleteHandler = service.Handler
+		case http.MethodGet:
+			s.router.endpointConfig[endpoint.Path].getHandler = service.Handler
+		case http.MethodPost:
+			s.router.endpointConfig[endpoint.Path].postHandler = service.Handler
+		case http.MethodPut:
+			s.router.endpointConfig[endpoint.Path].putHandler = service.Handler
+		case http.MethodDelete:
+			s.router.endpointConfig[endpoint.Path].deleteHandler = service.Handler
 		default:
 			panic(fmt.Sprintf("invalid method: %s", endpoint.Method))
 		}
@@ -50,7 +50,7 @@ func (s *Server) Run(addr string) error {
 
 	svr := &http.Server{
 		Addr:    addr,
-		Handler: &s.router,
+		Handler: s.router,
 	}
 	return svr.ListenAndServe()
 }
