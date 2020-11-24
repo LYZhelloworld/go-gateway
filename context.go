@@ -1,8 +1,6 @@
 package gateway
 
 import (
-	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -13,7 +11,7 @@ type Context struct {
 	// StatusCode holds the status code of the response.
 	StatusCode int
 	// Response holds the response body.
-	Response io.ReadCloser
+	Response []byte
 	// Header hold HTTP headers in the response.
 	Header http.Header
 
@@ -41,11 +39,7 @@ func (c *Context) write() {
 		}
 
 		w.WriteHeader(c.StatusCode)
-		res, err := ioutil.ReadAll(c.Response)
-		if err != nil {
-			panic(err)
-		}
-		_, err = w.Write(res)
+		_, err := w.Write(c.Response)
 		if err != nil {
 			panic(err)
 		}
