@@ -7,16 +7,18 @@ import (
 
 // Server is a struct for HTTP router.
 type Server struct {
-	Config      *Config
+	// Config is the configuration mapping endpoints and methods to services.
+	Config *Config
+	// ErrorConfig is a map that matches status codes to ServiceHandler.
 	ErrorConfig *ErrorConfig
-	Services    []*Service
-	router      *router
-}
+	// Services are the collection of all services.
+	Services []*Service
+	// Middlewares are the collection of all middlewares.
+	// The order of the execution follows the order of every middleware in the collection.
+	Middlewares []*Middleware
 
-// RegisterService registers a service.
-func (s *Server) RegisterService(service *Service) *Server {
-	s.Services = append(s.Services, service)
-	return s
+	// endpointConfig is a map with endpoint as key and routerConfig as value.
+	endpointConfig EndpointConfig
 }
 
 // Run starts the server with the current Config.
@@ -34,26 +36,23 @@ func (s *Server) Run(addr string) error {
 	}
 
 	// parse Services
-	s.router = &router{
-		config:      make(EndpointConfig),
-		errorConfig: *s.ErrorConfig,
-	}
+	s.endpointConfig = EndpointConfig{}
 	for endpoint, name := range *(s.Config) {
 		service := s.matchService(name)
 		if service == nil {
 			panic(fmt.Sprintf("service not found: %s", name))
 		}
-		if s.router.config[endpoint.Path] == nil {
-			s.router.config[endpoint.Path] = &routerConfig{}
+		if s.endpointConfig[endpoint.Path] == nil {
+			s.endpointConfig[endpoint.Path] = &routerConfig{}
 		}
-		if ok := s.router.config[endpoint.Path].setService(endpoint.Method, service); !ok {
+		if ok := s.endpointConfig[endpoint.Path].setService(endpoint.Method, service); !ok {
 			panic(fmt.Sprintf("invalid method: %s", endpoint.Method))
 		}
 	}
 
 	svr := &http.Server{
 		Addr:    addr,
-		Handler: s.router,
+		Handler: s,
 	}
 	return svr.ListenAndServe()
 }
@@ -79,4 +78,53 @@ func (s *Server) matchService(name ServiceName) *Service {
 		}
 	}
 	return found
+}
+
+// ServeHTTP serves HTTP requests.
+func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	ctx := &Context{
+		Request:        req,
+		StatusCode:     http.StatusOK,
+		Response:       nil,
+		Header:         map[string][]string{},
+		responseWriter: w,
+	}
+
+	config := s.endpointConfig[req.URL.RawPath]
+	if config == nil {
+		s.generalResponse(ctx, http.StatusNotFound)
+		return
+	}
+
+	service, ok := config.getService(req.Method)
+	if !ok {
+		s.generalResponse(ctx, http.StatusMethodNotAllowed)
+		return
+	}
+	if service == nil {
+		s.generalResponse(ctx, http.StatusNotFound)
+		return
+	}
+
+	ctx.serviceName = service.Name
+	s.response(ctx, service.Handler)
+	return
+}
+
+// response generates HTTP response using the handler.
+// ServeHTTP must return after calling this method.
+func (s *Server) response(context *Context, handler ServiceHandler) {
+	handler(context)
+	context.write()
+}
+
+// generalResponse generates error messages depending on the status code.
+// ServeHTTP must return after calling this method.
+func (s *Server) generalResponse(context *Context, statusCode int) {
+	context.StatusCode = statusCode
+	if handler, ok := (*s.ErrorConfig)[statusCode]; ok {
+		(*handler)(context)
+		context.write()
+		return
+	}
 }
