@@ -46,16 +46,7 @@ func (s *Server) Run(addr string) error {
 		if s.router.config[endpoint.Path] == nil {
 			s.router.config[endpoint.Path] = &routerConfig{}
 		}
-		switch endpoint.Method {
-		case http.MethodGet:
-			s.router.config[endpoint.Path].getHandler = service
-		case http.MethodPost:
-			s.router.config[endpoint.Path].postHandler = service
-		case http.MethodPut:
-			s.router.config[endpoint.Path].putHandler = service
-		case http.MethodDelete:
-			s.router.config[endpoint.Path].deleteHandler = service
-		default:
+		if ok := s.router.config[endpoint.Path].setService(endpoint.Method, service); !ok {
 			panic(fmt.Sprintf("invalid method: %s", endpoint.Method))
 		}
 	}

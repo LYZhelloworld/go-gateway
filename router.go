@@ -27,39 +27,19 @@ func (r *router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var handler ServiceHandler
-	switch req.Method {
-	case http.MethodGet:
-		if config.getHandler != nil {
-			ctx.serviceName = config.getHandler.Name
-			handler = config.getHandler.Handler
-		}
-	case http.MethodPost:
-		if config.postHandler != nil {
-			ctx.serviceName = config.postHandler.Name
-			handler = config.postHandler.Handler
-		}
-	case http.MethodPut:
-		if config.putHandler != nil {
-			ctx.serviceName = config.putHandler.Name
-			handler = config.putHandler.Handler
-		}
-	case http.MethodDelete:
-		if config.deleteHandler != nil {
-			ctx.serviceName = config.deleteHandler.Name
-			handler = config.deleteHandler.Handler
-		}
-	default:
+	service, ok := config.getService(req.Method)
+	if !ok {
 		r.generalResponse(ctx, http.StatusMethodNotAllowed)
 		ctx.write()
 		return
 	}
-	if handler == nil {
+	ctx.serviceName = service.Name
+	if service == nil {
 		r.generalResponse(ctx, http.StatusNotFound)
 		ctx.write()
 		return
 	}
-	handler(ctx)
+	service.Handler(ctx)
 	ctx.write()
 	return
 }
