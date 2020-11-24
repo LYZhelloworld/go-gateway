@@ -13,9 +13,12 @@ type Server struct {
 	ErrorConfig *ErrorConfig
 	// Services are the collection of all services.
 	Services []*Service
-	// Middlewares are the collection of all middlewares.
-	// The order of the execution follows the order of every middleware in the collection.
-	Middlewares []*Middleware
+	// Preprocessors are the collection of handlers executed before the main handler.
+	// The order of the execution follows the order of every handler in the collection.
+	Preprocessors []*ServiceHandler
+	// Postprocessors are the collection of handlers executed after the main handler.
+	// The order of the execution follows the order of every handler in the collection.
+	Postprocessors []*ServiceHandler
 
 	// endpointConfig is a map with endpoint as key and routerConfig as value.
 	endpointConfig EndpointConfig
@@ -111,20 +114,60 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
+// preprocess executes preprocessors on the context.
+func (s *Server) preprocess(context *Context) {
+	for _, h := range s.Preprocessors {
+		(*h)(context)
+		if context.isInterrupted {
+			return
+		}
+	}
+}
+
+// postprocess executes postprocessors on the context.
+func (s *Server) postprocess(context *Context) {
+	if context.isInterrupted {
+		return
+	}
+	for _, h := range s.Postprocessors {
+		(*h)(context)
+		if context.isInterrupted {
+			return
+		}
+	}
+}
+
 // response generates HTTP response using the handler.
 // ServeHTTP must return after calling this method.
 func (s *Server) response(context *Context, handler ServiceHandler) {
+	defer context.write()
+
+	s.preprocess(context)
+	if context.isInterrupted {
+		return
+	}
 	handler(context)
-	context.write()
+	if context.isInterrupted {
+		return
+	}
+	s.postprocess(context)
 }
 
 // generalResponse generates error messages depending on the status code.
 // ServeHTTP must return after calling this method.
 func (s *Server) generalResponse(context *Context, statusCode int) {
+	defer context.write()
+
 	context.StatusCode = statusCode
-	if handler, ok := (*s.ErrorConfig)[statusCode]; ok {
-		(*handler)(context)
-		context.write()
+	s.preprocess(context)
+	if context.isInterrupted {
 		return
 	}
+	if handler, ok := (*s.ErrorConfig)[statusCode]; ok {
+		(*handler)(context)
+		if context.isInterrupted {
+			return
+		}
+	}
+	s.postprocess(context)
 }

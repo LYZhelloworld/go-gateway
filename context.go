@@ -23,6 +23,8 @@ type Context struct {
 	responseWriter http.ResponseWriter
 	// isWritten is a flag shows whether the response has been written to the http.ResponseWriter.
 	isWritten bool
+	// isInterrupted is a flag shows whether the execution of handler chain is interrupted.
+	isInterrupted bool
 }
 
 // write writes response to the http.ResponseWriter.
@@ -53,4 +55,11 @@ func (c *Context) write() {
 // GetServiceName gets service name of the request.
 func (c *Context) GetServiceName() ServiceName {
 	return c.serviceName
+}
+
+// Interrupt stops the following handlers from executing, but does not stop the current handler.
+// This method can be used in either pre-/post-processors or the main handler.
+// Calling this method multiple times does not have side effects.
+func (c *Context) Interrupt() {
+	c.isInterrupted = true
 }
