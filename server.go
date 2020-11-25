@@ -137,7 +137,7 @@ func (s *Server) matchService(name string) (string, Handler) {
 
 // ServeHTTP serves HTTP requests.
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := CreateContext(w, req)
+	ctx := createContext(w, req)
 
 	config := s.endpointConfig[req.URL.EscapedPath()]
 	if config == nil {

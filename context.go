@@ -27,8 +27,8 @@ type Context struct {
 	isInterrupted bool
 }
 
-// CreateContext creates an empty Context.
-func CreateContext(w http.ResponseWriter, req *http.Request) *Context {
+// createContext creates an empty Context.
+func createContext(w http.ResponseWriter, req *http.Request) *Context {
 	return &Context{
 		Request:        req,
 		StatusCode:     http.StatusOK,
