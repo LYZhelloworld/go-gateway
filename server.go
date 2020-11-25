@@ -18,12 +18,13 @@ type Server struct {
 	ErrorConfig ErrorConfig
 	// Service is a map of all Handler.
 	Service Service
-	// preprocessors are the collection of handlers executed before the main handler.
-	// The order of the execution follows the order of every handler in the collection.
-	preprocessors []Handler
-	// postprocessors are the collection of handlers executed after the main handler.
-	// The order of the execution follows the order of every handler in the collection.
-	postprocessors []Handler
+	// Preprocessors are a collection of middlewares executed before the main handler.
+	// The order of the execution follows the order of every middleware in the collection.
+	Preprocessors Middleware
+	// Postprocessors are a collection of middlewares executed after the main handler.
+	// The order of the execution follows the order of every middleware in the collection.
+	Postprocessors Middleware
+
 	// endpointConfig is a map with endpoint as key and routerConfig as value.
 	endpointConfig EndpointConfig
 }
@@ -34,30 +35,8 @@ func Default() *Server {
 		Config:      Config{},
 		ErrorConfig: ErrorConfig{},
 		Service:     Service{},
-	}
-}
-
-// AddPreprocessor registers a preprocessor to the Server.
-func (s *Server) AddPreprocessor(handler Handler) {
-	s.preprocessors = append(s.preprocessors, handler)
-}
-
-// AddPreprocessors registers preprocessors to the Server.
-func (s *Server) AddPreprocessors(handlers ...Handler) {
-	for _, h := range handlers {
-		s.AddPreprocessor(h)
-	}
-}
-
-// AddPostprocessor registers a postprocessor to the Server.
-func (s *Server) AddPostprocessor(handler Handler) {
-	s.postprocessors = append(s.postprocessors, handler)
-}
-
-// AddPostprocessors registers postprocessors to the Server.
-func (s *Server) AddPostprocessors(handlers ...Handler) {
-	for _, h := range handlers {
-		s.AddPostprocessor(h)
+		Preprocessors: Middleware{},
+		Postprocessors: Middleware{},
 	}
 }
 
@@ -183,9 +162,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-// preprocess executes preprocessors on the context.
+// preprocess executes Preprocessors on the context.
 func (s *Server) preprocess(context *Context) {
-	for _, h := range s.preprocessors {
+	for _, h := range s.Preprocessors.handlers {
 		h(context)
 		if context.isInterrupted {
 			return
@@ -193,12 +172,12 @@ func (s *Server) preprocess(context *Context) {
 	}
 }
 
-// postprocess executes postprocessors on the context.
+// postprocess executes Postprocessors on the context.
 func (s *Server) postprocess(context *Context) {
 	if context.isInterrupted {
 		return
 	}
-	for _, h := range s.postprocessors {
+	for _, h := range s.Postprocessors.handlers {
 		h(context)
 		if context.isInterrupted {
 			return
