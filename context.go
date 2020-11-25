@@ -14,6 +14,8 @@ type Context struct {
 	Response []byte
 	// Header holds HTTP headers in the response.
 	Header http.Header
+	// Data is a map that holds data of any type for value exchange between middlewares and main handler.
+	Data map[string]interface{}
 
 	// serviceName is the name of the Service of the request.
 	serviceName string
@@ -23,6 +25,17 @@ type Context struct {
 	isWritten bool
 	// isInterrupted is a flag shows whether the execution of handler chain is interrupted.
 	isInterrupted bool
+}
+
+// CreateContext creates an empty Context.
+func CreateContext(w http.ResponseWriter, req *http.Request) *Context {
+	return &Context{
+		Request:        req,
+		StatusCode:     http.StatusOK,
+		Header:         map[string][]string{},
+		Data:           map[string]interface{}{},
+		responseWriter: w,
+	}
 }
 
 // write writes response to the http.ResponseWriter.

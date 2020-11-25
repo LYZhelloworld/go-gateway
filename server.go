@@ -32,10 +32,10 @@ type Server struct {
 // Default creates a default Server without any configurations.
 func Default() *Server {
 	return &Server{
-		Config:      Config{},
-		ErrorConfig: ErrorConfig{},
-		Service:     Service{},
-		Preprocessors: Middleware{},
+		Config:         Config{},
+		ErrorConfig:    ErrorConfig{},
+		Service:        Service{},
+		Preprocessors:  Middleware{},
 		Postprocessors: Middleware{},
 	}
 }
@@ -137,13 +137,7 @@ func (s *Server) matchService(name string) (string, Handler) {
 
 // ServeHTTP serves HTTP requests.
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ctx := &Context{
-		Request:        req,
-		StatusCode:     http.StatusOK,
-		Response:       nil,
-		Header:         map[string][]string{},
-		responseWriter: w,
-	}
+	ctx := CreateContext(w, req)
 
 	config := s.endpointConfig[req.URL.EscapedPath()]
 	if config == nil {
