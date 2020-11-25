@@ -9,7 +9,7 @@ const (
 	baseServiceHandler = "*"
 )
 
-var pathRegexp = regexp.MustCompile("^(?:/|(?:/[.a-zA-Z0-9-]+)+)$")
+var pathRegexp = regexp.MustCompile("^(?:/|(?:/(?:[A-Za-z0-9-._~]|%[0-9A-Fa-f]{2})+)+)$")
 var serviceRegexp = regexp.MustCompile("^[a-zA-Z0-9_-]+(?:\\.[a-zA-Z0-9_-]+)*$")
 
 // isValidPath checks if the path is a valid path, or a valid prefix which has a path and a suffix "/*".
