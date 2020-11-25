@@ -13,5 +13,3 @@ package gateway
 // An asterisk (*) means a service handler for all service, if there is no other service that are more specific.
 type Service map[string]Handler
 
-// Handler is a function that handles the service.
-type Handler func(context *Context)
