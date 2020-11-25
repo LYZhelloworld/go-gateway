@@ -5,38 +5,35 @@ Gateway is an HTTP server written in Golang.
 ```
 package main
 
-import "github.com/LYZhelloworld/gateway"
+import (
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/LYZhelloworld/gateway"
+)
 
 func main() {
-	s := gateway.Server{
-		Config: &gateway.Config{
-			gateway.Endpoint{
-				Path:   "/echo",
-				Method: "GET",
-			}: "api.gateway.echo",
-		},
-		Services: []*gateway.Service{
-			{
-				Name: "api.gateway.echo",
-				Handler: func(context *gateway.Context) {
-					context.Response = []byte("hello, world")
-				},
-			},
-		},
+	s := gateway.Default()
+	s.AddEndpoint("/hello", http.MethodGet, "api.gateway.hello")
+	s.AddService("api.gateway.hello", func(context *gateway.Context) {
+		context.Response = []byte("hello, world")
+	})
+	if err := s.RunWithShutdown(":8080", 5*time.Second); err != nil {
+		fmt.Println(err)
 	}
-	_ = s.Run(":8080")
 }
 ```
 
 ## Endpoint and Service
-An endpoint is the URL path of the HTTP request. For example: `/api/echo`.
+An endpoint is the URL path of the HTTP request. For example: `/hello`.
 
-A service is a handler with a group of identifiers separated by dots (`.`) as its name. For example: `api.gateway.echo`.
+A service is a handler with a group of identifiers separated by dots (`.`) as its name. For example: `api.gateway.hello`.
 Every endpoint points to a service name. A service with exact the same service name can handle the request.
 
 However, a service that is "more generic" than the service name indicated by the endpoint is still capable of handling
 the service, only if there is no other services that is "more specific". For example: if there is `api.gateway` but
-no `api.gateway.echo`, it can still handle `api.gateway.echo` request.
+no `api.gateway.hello`, it can still handle `api.gateway.hello` request.
 
 A service with name `*` will handle all requests if no other service handler exists and matches the service name given.
 
@@ -45,7 +42,9 @@ A service with name `*` will handle all requests if no other service handler exi
 
 `Server.Services` is a collection of all services with their name.
 
-By executing `Server.Run()`, these two arguments will be parsed, and the server starts.
+`Server.Run()` starts a server without shutting down procedure.
+
+`Server.RunWithShutdown()` starts a server with shutdown timeout and will shutdown the server gracefully.
 
 ## Context
 `Context` is the thing that the handler requires when the server is running.

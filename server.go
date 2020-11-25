@@ -1,8 +1,13 @@
 package gateway
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 // Server is a struct for HTTP router.
@@ -80,8 +85,8 @@ func (s *Server) AddPostprocessors(handlers ...ServiceHandler) {
 	}
 }
 
-// Run starts the server with the current Config.
-func (s *Server) Run(addr string) error {
+// prepare sets all configurations before running.
+func (s *Server) prepare(addr string) *http.Server {
 	if s.Config == nil {
 		s.Config = Config{}
 	}
@@ -109,7 +114,50 @@ func (s *Server) Run(addr string) error {
 		Addr:    addr,
 		Handler: s,
 	}
+	return svr
+}
+
+// Run starts the server with the current Config.
+func (s *Server) Run(addr string) error {
+	svr := s.prepare(addr)
 	return svr.ListenAndServe()
+}
+
+// RunWithShutdown starts the server with the current Config.
+// It catches a SIGINT or SIGTERM as shutdown signal.
+func (s *Server) RunWithShutdown(addr string, shutdownTimeout time.Duration) error {
+	svr := s.prepare(addr)
+	errChan := make(chan error)
+	go func() {
+		if err := svr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errChan <- err
+		} else {
+			errChan <- nil
+		}
+	}()
+
+	quit := make(chan os.Signal)
+	// kill: SIGTERM
+	// kill -2: SIGINT
+	// kill -9: SIGKILL (cannot be caught)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	select {
+	case <-quit:
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+		if err := svr.Shutdown(ctx); err != nil {
+			return err
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-errChan:
+			return err
+		}
+	case err := <-errChan:
+		return err
+	}
 }
 
 // matchService finds service that is the closest to the given one.
@@ -145,7 +193,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		responseWriter: w,
 	}
 
-	config := s.endpointConfig[req.URL.RawPath]
+	config := s.endpointConfig[req.URL.EscapedPath()]
 	if config == nil {
 		s.generalResponse(ctx, http.StatusNotFound)
 		return
