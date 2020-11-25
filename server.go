@@ -8,39 +8,91 @@ import (
 // Server is a struct for HTTP router.
 type Server struct {
 	// Config is the configuration mapping endpoints and methods to services.
-	Config *Config
+	Config Config
 	// ErrorConfig is a map that matches status codes to ServiceHandler.
-	ErrorConfig *ErrorConfig
+	ErrorConfig ErrorConfig
 	// Services are the collection of all services.
 	Services []*Service
 	// Preprocessors are the collection of handlers executed before the main handler.
 	// The order of the execution follows the order of every handler in the collection.
-	Preprocessors []*ServiceHandler
+	Preprocessors []ServiceHandler
 	// Postprocessors are the collection of handlers executed after the main handler.
 	// The order of the execution follows the order of every handler in the collection.
-	Postprocessors []*ServiceHandler
+	Postprocessors []ServiceHandler
 
 	// endpointConfig is a map with endpoint as key and routerConfig as value.
 	endpointConfig EndpointConfig
 }
 
+// Default creates a default Server without any configurations.
+func Default() *Server {
+	return &Server{
+		Config:      Config{},
+		ErrorConfig: ErrorConfig{},
+	}
+}
+
+// AddEndpoint links an endpoint to a service by name.
+func (s *Server) AddEndpoint(path string, method string, service ServiceName) {
+	if s.Config == nil {
+		s.Config = Config{}
+	}
+	s.Config[Endpoint{Path: path, Method: method}] = service
+}
+
+// AddService registers a service.
+func (s *Server) AddService(name ServiceName, handler ServiceHandler) {
+	if handler == nil {
+		panic("nil handler")
+	}
+	s.Services = append(s.Services, &Service{Name: name, Handler: handler})
+}
+
+// AddErrorConfig registers an ErrorConfig with a specific status code.
+func (s *Server) AddErrorConfig(status int, handler ServiceHandler) {
+	if s.ErrorConfig == nil {
+		s.ErrorConfig = ErrorConfig{}
+	}
+	s.ErrorConfig[status] = handler
+}
+
+// AddPreprocessor registers a preprocessor to the Server.
+func (s *Server) AddPreprocessor(handler ServiceHandler) {
+	s.Preprocessors = append(s.Preprocessors, handler)
+}
+
+// AddPreprocessors registers preprocessors to the Server.
+func (s *Server) AddPreprocessors(handlers ...ServiceHandler) {
+	for _, h := range handlers {
+		s.AddPreprocessor(h)
+	}
+}
+
+// AddPostprocessor registers a postprocessor to the Server.
+func (s *Server) AddPostprocessor(handler ServiceHandler) {
+	s.Postprocessors = append(s.Postprocessors, handler)
+}
+
+// AddPostprocessors registers postprocessors to the Server.
+func (s *Server) AddPostprocessors(handlers ...ServiceHandler) {
+	for _, h := range handlers {
+		s.AddPostprocessor(h)
+	}
+}
+
 // Run starts the server with the current Config.
 func (s *Server) Run(addr string) error {
 	if s.Config == nil {
-		s.Config = &Config{}
+		s.Config = Config{}
 	}
 
 	if s.ErrorConfig == nil {
-		s.ErrorConfig = &ErrorConfig{}
-	}
-
-	if s.Services == nil {
-		s.Services = []*Service{}
+		s.ErrorConfig = ErrorConfig{}
 	}
 
 	// parse Services
 	s.endpointConfig = EndpointConfig{}
-	for endpoint, name := range *(s.Config) {
+	for endpoint, name := range s.Config {
 		service := s.matchService(name)
 		if service == nil {
 			panic(fmt.Sprintf("service not found: %s", name))
@@ -117,7 +169,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // preprocess executes preprocessors on the context.
 func (s *Server) preprocess(context *Context) {
 	for _, h := range s.Preprocessors {
-		(*h)(context)
+		h(context)
 		if context.isInterrupted {
 			return
 		}
@@ -130,7 +182,7 @@ func (s *Server) postprocess(context *Context) {
 		return
 	}
 	for _, h := range s.Postprocessors {
-		(*h)(context)
+		h(context)
 		if context.isInterrupted {
 			return
 		}
@@ -163,8 +215,8 @@ func (s *Server) generalResponse(context *Context, statusCode int) {
 	if context.isInterrupted {
 		return
 	}
-	if handler, ok := (*s.ErrorConfig)[statusCode]; ok {
-		(*handler)(context)
+	if handler, ok := s.ErrorConfig[statusCode]; ok {
+		handler(context)
 		if context.isInterrupted {
 			return
 		}

@@ -17,7 +17,7 @@ type Endpoint struct {
 type EndpointConfig map[string]*routerConfig
 
 // ErrorConfig is a map that matches status codes to ServiceHandler.
-type ErrorConfig map[int]*ServiceHandler
+type ErrorConfig map[int]ServiceHandler
 
 // routerConfig holds services for different methods.
 type routerConfig struct {
