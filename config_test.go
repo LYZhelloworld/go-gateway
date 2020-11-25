@@ -8,7 +8,7 @@ import (
 )
 
 func TestRouterConfig_SetService(t *testing.T) {
-	testService := &Service{}
+	testService := &serviceInfo{}
 	rc := routerConfig{}
 
 	ok := rc.setService(http.MethodGet, testService)
@@ -36,7 +36,7 @@ func TestRouterConfig_SetService(t *testing.T) {
 }
 
 func TestRouterConfig_GetService(t *testing.T) {
-	testService := &Service{}
+	testService := &serviceInfo{}
 	rc := routerConfig{}
 
 	rc.get = testService

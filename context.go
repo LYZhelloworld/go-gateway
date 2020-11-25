@@ -16,7 +16,7 @@ type Context struct {
 	Header http.Header
 
 	// serviceName is the name of the service of the request.
-	serviceName ServiceName
+	serviceName string
 	// responseWriter is the http.ResponseWriter from the handler.
 	responseWriter http.ResponseWriter
 	// isWritten is a flag shows whether the response has been written to the http.ResponseWriter.
@@ -47,7 +47,7 @@ func (c *Context) write() {
 }
 
 // GetServiceName gets service name of the request.
-func (c *Context) GetServiceName() ServiceName {
+func (c *Context) GetServiceName() string {
 	return c.serviceName
 }
 

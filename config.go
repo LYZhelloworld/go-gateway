@@ -2,10 +2,11 @@ package gateway
 
 import (
 	"net/http"
+	"strings"
 )
 
-// Config is a map that matches endpoints to Services.
-type Config map[Endpoint]ServiceName
+// Config is a map that matches endpoints to service.
+type Config map[Endpoint]string
 
 // Endpoint is a struct of path and method.
 type Endpoint struct {
@@ -16,19 +17,44 @@ type Endpoint struct {
 // EndpointConfig is a map that matches string endpoint to routerConfig.
 type EndpointConfig map[string]*routerConfig
 
+// getEndpointConfig gets corresponding endpoint config from the Server.
+func (e *EndpointConfig) get(path string) *routerConfig {
+	// remove trailing slash
+	path = strings.TrimSuffix(path, "/")
+	if config, ok := (*e)[path]; ok {
+		return config
+	} else {
+		// check prefixes
+		for p := removeLastDir(path); p != ""; p = removeLastDir(p) {
+			if config, ok := (*e)[path + "/*"]; ok {
+				return config
+			}
+		}
+		return nil
+	}
+}
+
 // ErrorConfig is a map that matches status codes to ServiceHandler.
 type ErrorConfig map[int]ServiceHandler
 
-// routerConfig holds services for different methods.
+// routerConfig holds service for different methods.
 type routerConfig struct {
-	get    *Service
-	post   *Service
-	put    *Service
-	delete *Service
+	get    *serviceInfo
+	post   *serviceInfo
+	put    *serviceInfo
+	delete *serviceInfo
+}
+
+// serviceInfo contains the name and handler of a service.
+type serviceInfo struct {
+	// name is the name of a service.
+	name string
+	// handler is the ServiceHandler of a service.
+	handler ServiceHandler
 }
 
 // setService assigns Service to the specific method.
-func (r *routerConfig) setService(method string, service *Service) (ok bool) {
+func (r *routerConfig) setService(method string, service *serviceInfo) (ok bool) {
 	switch method {
 	case http.MethodGet:
 		r.get = service
@@ -45,7 +71,7 @@ func (r *routerConfig) setService(method string, service *Service) (ok bool) {
 }
 
 // getService gets Service of the specific method.
-func (r *routerConfig) getService(method string) (service *Service, ok bool) {
+func (r *routerConfig) getService(method string) (service *serviceInfo, ok bool) {
 	switch method {
 	case http.MethodGet:
 		return r.get, true
