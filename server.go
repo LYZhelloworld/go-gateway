@@ -137,6 +137,13 @@ func (s *Server) matchService(name string) (string, Handler) {
 
 // ServeHTTP serves HTTP requests.
 func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// catch all panics here so that the panics from handlers will not make the server crash
+	defer func() {
+		if r := recover(); r != nil {
+			// TODO: logging
+		}
+	}()
+
 	ctx := createContext(w, req)
 
 	config := s.endpointConfig[req.URL.EscapedPath()]
