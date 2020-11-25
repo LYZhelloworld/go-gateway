@@ -11,7 +11,7 @@ package gateway
 // But "foo.bar.baz" cannot handle "foo.bar".
 //
 // An asterisk (*) means a service handler for all service, if there is no other service that are more specific.
-type Service map[string]ServiceHandler
+type Service map[string]Handler
 
-// ServiceHandler is a function that handles the service.
-type ServiceHandler func(context *Context)
+// Handler is a function that handles the service.
+type Handler func(context *Context)

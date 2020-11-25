@@ -14,16 +14,16 @@ import (
 type Server struct {
 	// config is the configuration mapping endpoints and methods to service.
 	config Config
-	// errorConfig is a map that matches status codes to ServiceHandler.
+	// errorConfig is a map that matches status codes to Handler.
 	errorConfig ErrorConfig
-	// service is a map of all ServiceHandler.
+	// service is a map of all Handler.
 	service Service
 	// preprocessors are the collection of handlers executed before the main handler.
 	// The order of the execution follows the order of every handler in the collection.
-	preprocessors []ServiceHandler
+	preprocessors []Handler
 	// postprocessors are the collection of handlers executed after the main handler.
 	// The order of the execution follows the order of every handler in the collection.
-	postprocessors []ServiceHandler
+	postprocessors []Handler
 	// endpointConfig is a map with endpoint as key and routerConfig as value.
 	endpointConfig EndpointConfig
 }
@@ -67,7 +67,7 @@ func (s *Server) AddEndpoint(path string, method string, service string) {
 }
 
 // AddService registers a service.
-func (s *Server) AddService(name string, handler ServiceHandler) {
+func (s *Server) AddService(name string, handler Handler) {
 	if s.service == nil {
 		s.service = Service{}
 	}
@@ -81,7 +81,7 @@ func (s *Server) AddService(name string, handler ServiceHandler) {
 }
 
 // AddErrorConfig registers an ErrorConfig with a specific status code.
-func (s *Server) AddErrorConfig(status int, handler ServiceHandler) {
+func (s *Server) AddErrorConfig(status int, handler Handler) {
 	if s.errorConfig == nil {
 		s.errorConfig = ErrorConfig{}
 	}
@@ -89,24 +89,24 @@ func (s *Server) AddErrorConfig(status int, handler ServiceHandler) {
 }
 
 // AddPreprocessor registers a preprocessor to the Server.
-func (s *Server) AddPreprocessor(handler ServiceHandler) {
+func (s *Server) AddPreprocessor(handler Handler) {
 	s.preprocessors = append(s.preprocessors, handler)
 }
 
 // AddPreprocessors registers preprocessors to the Server.
-func (s *Server) AddPreprocessors(handlers ...ServiceHandler) {
+func (s *Server) AddPreprocessors(handlers ...Handler) {
 	for _, h := range handlers {
 		s.AddPreprocessor(h)
 	}
 }
 
 // AddPostprocessor registers a postprocessor to the Server.
-func (s *Server) AddPostprocessor(handler ServiceHandler) {
+func (s *Server) AddPostprocessor(handler Handler) {
 	s.postprocessors = append(s.postprocessors, handler)
 }
 
 // AddPostprocessors registers postprocessors to the Server.
-func (s *Server) AddPostprocessors(handlers ...ServiceHandler) {
+func (s *Server) AddPostprocessors(handlers ...Handler) {
 	for _, h := range handlers {
 		s.AddPostprocessor(h)
 	}
@@ -198,7 +198,7 @@ func (s *Server) RunWithShutdown(addr string, shutdownTimeout time.Duration) err
 // The service "foo" will be matched.
 // The service "foo.bar.baz" is more specific than the given one.
 // The service "foo.baz" has different sub-service "baz".
-func (s *Server) matchService(name string) (string, ServiceHandler) {
+func (s *Server) matchService(name string) (string, Handler) {
 	for thisName := name; thisName != ""; thisName = removeLastSubService(thisName) {
 		if srv, ok := s.service[thisName]; ok {
 			return thisName, srv
@@ -268,7 +268,7 @@ func (s *Server) postprocess(context *Context) {
 
 // response generates HTTP response using the handler.
 // ServeHTTP must return after calling this method.
-func (s *Server) response(context *Context, handler ServiceHandler) {
+func (s *Server) response(context *Context, handler Handler) {
 	defer context.write()
 
 	s.preprocess(context)

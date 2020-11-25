@@ -34,8 +34,8 @@ func (e *EndpointConfig) get(path string) *routerConfig {
 	}
 }
 
-// ErrorConfig is a map that matches status codes to ServiceHandler.
-type ErrorConfig map[int]ServiceHandler
+// ErrorConfig is a map that matches status codes to Handler.
+type ErrorConfig map[int]Handler
 
 // routerConfig holds service for different methods.
 type routerConfig struct {
@@ -49,8 +49,8 @@ type routerConfig struct {
 type serviceInfo struct {
 	// name is the name of a service.
 	name string
-	// handler is the ServiceHandler of a service.
-	handler ServiceHandler
+	// handler is the Handler of a service.
+	handler Handler
 }
 
 // setService assigns Service to the specific method.
