@@ -12,12 +12,12 @@ import (
 
 // Server is a struct for HTTP router.
 type Server struct {
-	// config is the configuration mapping endpoints and methods to service.
-	config Config
-	// errorConfig is a map that matches status codes to Handler.
-	errorConfig ErrorConfig
-	// service is a map of all Handler.
-	service Service
+	// Config is the configuration mapping endpoints and methods to Service.
+	Config Config
+	// ErrorConfig is a map that matches status codes to Handler.
+	ErrorConfig ErrorConfig
+	// Service is a map of all Handler.
+	Service Service
 	// preprocessors are the collection of handlers executed before the main handler.
 	// The order of the execution follows the order of every handler in the collection.
 	preprocessors []Handler
@@ -31,61 +31,10 @@ type Server struct {
 // Default creates a default Server without any configurations.
 func Default() *Server {
 	return &Server{
-		config:         Config{},
-		errorConfig:    ErrorConfig{},
-		endpointConfig: EndpointConfig{},
+		Config:      Config{},
+		ErrorConfig: ErrorConfig{},
+		Service:     Service{},
 	}
-}
-
-// AddEndpoint links an endpoint to a service by name.
-// If the path does not end with a slash and an asterisk ("/*"),
-// only requests that match the path EXACTLY will be handled by the service.
-// Paths ending with "/*" is considered as a prefix.
-//
-// For example:
-//
-// "/api/echo" can be handled by "/api/echo" or "/api/*", but not "/api" or "/".
-//
-// If multiple prefixes exist, the prefix that matches the most will be the handler.
-//
-// For example:
-//
-// "/api/foo/bar" will be handled by "/api/foo/*" but not "/api/*".
-//
-// The service name of an endpoint should be as specific as possible and should not contain asterisk (*).
-func (s *Server) AddEndpoint(path string, method string, service string) {
-	if s.config == nil {
-		s.config = Config{}
-	}
-	if path == "" || !isValidPath(trimPrefix(path)) {
-		panic("invalid path")
-	}
-	if service == baseServiceHandler || !isValidService(service) {
-		panic("invalid service")
-	}
-	s.config[Endpoint{Path: path, Method: method}] = service
-}
-
-// AddService registers a service.
-func (s *Server) AddService(name string, handler Handler) {
-	if s.service == nil {
-		s.service = Service{}
-	}
-	if handler == nil {
-		panic("nil handler")
-	}
-	if !isValidService(name) {
-		panic("invalid service")
-	}
-	s.service[name] = handler
-}
-
-// AddErrorConfig registers an ErrorConfig with a specific status code.
-func (s *Server) AddErrorConfig(status int, handler Handler) {
-	if s.errorConfig == nil {
-		s.errorConfig = ErrorConfig{}
-	}
-	s.errorConfig[status] = handler
 }
 
 // AddPreprocessor registers a preprocessor to the Server.
@@ -114,17 +63,17 @@ func (s *Server) AddPostprocessors(handlers ...Handler) {
 
 // prepare sets all configurations before running.
 func (s *Server) prepare(addr string) *http.Server {
-	if s.config == nil {
-		s.config = Config{}
+	if s.Config == nil {
+		s.Config = Config{}
 	}
 
-	if s.errorConfig == nil {
-		s.errorConfig = ErrorConfig{}
+	if s.ErrorConfig == nil {
+		s.ErrorConfig = ErrorConfig{}
 	}
 
-	// parse service
+	// parse Service
 	s.endpointConfig = EndpointConfig{}
-	for endpoint, name := range s.config {
+	for endpoint, name := range s.Config {
 		matchedName, handler := s.matchService(name)
 		if handler == nil {
 			panic(fmt.Sprintf("handler not found: %s", name))
@@ -185,22 +134,22 @@ func (s *Server) RunWithShutdown(addr string, shutdownTimeout time.Duration) err
 	}
 }
 
-// matchService finds service that is the closest to the given one.
-// For example, if the given service is "foo.bar" and there are service like:
+// matchService finds Service that is the closest to the given one.
+// For example, if the given Service is "foo.bar" and there are Service like:
 //
 // foo, foo.bar.baz, foo.baz
 //
-// The service "foo" will be matched.
-// The service "foo.bar.baz" is more specific than the given one.
-// The service "foo.baz" has different sub-service "baz".
+// The Service "foo" will be matched.
+// The Service "foo.bar.baz" is more specific than the given one.
+// The Service "foo.baz" has different sub-Service "baz".
 func (s *Server) matchService(name string) (string, Handler) {
 	for thisName := name; thisName != ""; thisName = removeLastSubService(thisName) {
-		if srv, ok := s.service[thisName]; ok {
+		if srv, ok := s.Service[thisName]; ok {
 			return thisName, srv
 		}
 	}
 
-	if srv, ok := s.service[baseServiceHandler]; ok {
+	if srv, ok := s.Service[baseServiceHandler]; ok {
 		return baseServiceHandler, srv
 	} else {
 		return "", nil
@@ -283,7 +232,7 @@ func (s *Server) generalResponse(context *Context, statusCode int) {
 	if context.isInterrupted {
 		return
 	}
-	if handler, ok := s.errorConfig[statusCode]; ok {
+	if handler, ok := s.ErrorConfig[statusCode]; ok {
 		handler(context)
 		if context.isInterrupted {
 			return

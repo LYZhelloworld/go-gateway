@@ -39,12 +39,12 @@ func removeLastDir(path string) string {
 	return r
 }
 
-// isValidService checks if the service name is valid.
+// isValidService checks if the Service name is valid.
 func isValidService(serviceName string) bool {
 	return serviceName == baseServiceHandler || serviceRegexp.MatchString(serviceName)
 }
 
-// removeLastSubService removes last sub-service of a service name.
+// removeLastSubService removes last sub-Service of a Service name.
 // For example: removeLastSubService("foo.bar.baz") gives "foo.bar".
 // removeLastSubService("foo") gives empty string.
 func removeLastSubService(serviceName string) string {

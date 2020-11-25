@@ -15,7 +15,7 @@ type Context struct {
 	// Header holds HTTP headers in the response.
 	Header http.Header
 
-	// serviceName is the name of the service of the request.
+	// serviceName is the name of the Service of the request.
 	serviceName string
 	// responseWriter is the http.ResponseWriter from the handler.
 	responseWriter http.ResponseWriter
@@ -46,7 +46,7 @@ func (c *Context) write() {
 	}
 }
 
-// GetServiceName gets service name of the request.
+// GetServiceName gets Service name of the request.
 func (c *Context) GetServiceName() string {
 	return c.serviceName
 }

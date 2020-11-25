@@ -5,7 +5,7 @@ import "strings"
 // EndpointConfig is a map that matches string endpoint to routerConfig.
 type EndpointConfig map[string]*routerConfig
 
-// getEndpointConfig gets corresponding endpoint config from the Server.
+// getEndpointConfig gets corresponding endpoint Config from the Server.
 func (e *EndpointConfig) get(path string) *routerConfig {
 	// remove trailing slash
 	path = strings.TrimSuffix(path, "/")
@@ -21,4 +21,3 @@ func (e *EndpointConfig) get(path string) *routerConfig {
 		return nil
 	}
 }
-
