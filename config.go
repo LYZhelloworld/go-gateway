@@ -1,7 +1,6 @@
 package gateway
 
 import (
-	"net/http"
 	"strings"
 )
 
@@ -37,13 +36,8 @@ func (e *EndpointConfig) get(path string) *routerConfig {
 // ErrorConfig is a map that matches status codes to Handler.
 type ErrorConfig map[int]Handler
 
-// routerConfig holds service for different methods.
-type routerConfig struct {
-	get    *serviceInfo
-	post   *serviceInfo
-	put    *serviceInfo
-	delete *serviceInfo
-}
+// routerConfig holds service for different methods, with method string as the key
+type routerConfig map[string]serviceInfo
 
 // serviceInfo contains the name and handler of a service.
 type serviceInfo struct {
@@ -51,37 +45,4 @@ type serviceInfo struct {
 	name string
 	// handler is the Handler of a service.
 	handler Handler
-}
-
-// setService assigns Service to the specific method.
-func (r *routerConfig) setService(method string, service *serviceInfo) (ok bool) {
-	switch method {
-	case http.MethodGet:
-		r.get = service
-	case http.MethodPost:
-		r.post = service
-	case http.MethodPut:
-		r.put = service
-	case http.MethodDelete:
-		r.delete = service
-	default:
-		return false
-	}
-	return true
-}
-
-// getService gets Service of the specific method.
-func (r *routerConfig) getService(method string) (service *serviceInfo, ok bool) {
-	switch method {
-	case http.MethodGet:
-		return r.get, true
-	case http.MethodPost:
-		return r.post, true
-	case http.MethodPut:
-		return r.put, true
-	case http.MethodDelete:
-		return r.delete, true
-	default:
-		return nil, false
-	}
 }

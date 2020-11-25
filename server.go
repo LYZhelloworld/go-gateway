@@ -132,12 +132,7 @@ func (s *Server) prepare(addr string) *http.Server {
 		if s.endpointConfig[endpoint.Path] == nil {
 			s.endpointConfig[endpoint.Path] = &routerConfig{}
 		}
-		if ok := s.endpointConfig[endpoint.Path].setService(
-			endpoint.Method,
-			&serviceInfo{name: matchedName, handler: handler},
-		); !ok {
-			panic(fmt.Sprintf("invalid method: %s", endpoint.Method))
-		}
+		(*s.endpointConfig[endpoint.Path])[endpoint.Method] = serviceInfo{name: matchedName, handler: handler}
 	}
 
 	svr := &http.Server{
@@ -228,12 +223,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	service, ok := config.getService(req.Method)
+	service, ok := (*config)[req.Method]
 	if !ok {
-		s.generalResponse(ctx, http.StatusMethodNotAllowed)
-		return
-	}
-	if service == nil {
 		s.generalResponse(ctx, http.StatusNotFound)
 		return
 	}
