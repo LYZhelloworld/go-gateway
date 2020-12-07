@@ -39,7 +39,7 @@ type Logger interface {
 
 // GetDefaultLogger gets root logger with default config.
 func GetDefaultLogger() Logger {
-	return GetLoggerWithConfig(os.Stderr, Trace)
+	return defaultLogger
 }
 
 // GetDefaultLogger gets root logger with specified config.
@@ -51,3 +51,5 @@ func GetLoggerWithConfig(writer io.Writer, level Level) Logger {
 		prev:        nil,
 	}
 }
+
+var defaultLogger = GetLoggerWithConfig(os.Stderr, Trace)
