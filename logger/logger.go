@@ -37,12 +37,12 @@ type Logger interface {
 	WithLazyField(key string, value func() interface{}) Logger
 }
 
-// GetLogger gets root logger with default config.
-func GetLogger() Logger {
+// GetDefaultLogger gets root logger with default config.
+func GetDefaultLogger() Logger {
 	return GetLoggerWithConfig(os.Stderr, Trace)
 }
 
-// GetLogger gets root logger with specified config.
+// GetDefaultLogger gets root logger with specified config.
 func GetLoggerWithConfig(writer io.Writer, level Level) Logger {
 	return &loggerImpl{
 		lowestLevel: level,

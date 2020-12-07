@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/LYZhelloworld/gateway/logger"
 )
 
 // Server is a struct for HTTP router.
@@ -24,6 +26,8 @@ type Server struct {
 	// Postprocessors are a collection of middlewares executed after the main handler.
 	// The order of the execution follows the order of every middleware in the collection.
 	Postprocessors Middleware
+	// Logger is the logger assigned to the Server.
+	Logger logger.Logger
 
 	// endpointConfig is a map with endpoint as key and routerConfig as value.
 	endpointConfig EndpointConfig
@@ -37,6 +41,7 @@ func Default() *Server {
 		Service:        Service{},
 		Preprocessors:  Middleware{},
 		Postprocessors: Middleware{},
+		Logger:         logger.GetDefaultLogger(),
 	}
 }
 
@@ -44,10 +49,12 @@ func Default() *Server {
 func (s *Server) prepare(addr string) *http.Server {
 	if s.Config == nil {
 		s.Config = Config{}
+		s.Logger.Warn("Config is nil. Use empty Config instead.")
 	}
 
 	if s.ErrorConfig == nil {
 		s.ErrorConfig = ErrorConfig{}
+		s.Logger.Warn("ErrorConfig is nil. Use empty ErrorConfig instead.")
 	}
 
 	// parse Service
@@ -55,12 +62,19 @@ func (s *Server) prepare(addr string) *http.Server {
 	for endpoint, name := range s.Config {
 		matchedName, handler := s.matchService(name)
 		if handler == nil {
+			s.Logger.WithField("endpoint", endpoint.Path).
+				WithField("method", endpoint.Method).
+				WithField("service", name).Fatal("handler not found")
 			panic(fmt.Sprintf("handler not found: %s", name))
 		}
 		if s.endpointConfig[endpoint.Path] == nil {
 			s.endpointConfig[endpoint.Path] = &routerConfig{}
 		}
 		(*s.endpointConfig[endpoint.Path])[endpoint.Method] = serviceInfo{name: matchedName, handler: handler}
+		s.Logger.WithField("endpoint", endpoint.Path).
+			WithField("method", endpoint.Method).
+			WithField("service", matchedName).
+			Info("service matched")
 	}
 
 	svr := &http.Server{
@@ -73,6 +87,7 @@ func (s *Server) prepare(addr string) *http.Server {
 // Run starts the server with the current Config.
 func (s *Server) Run(addr string) error {
 	svr := s.prepare(addr)
+	s.Logger.Info("start server")
 	return svr.ListenAndServe()
 }
 
@@ -82,6 +97,7 @@ func (s *Server) RunWithShutdown(addr string, shutdownTimeout time.Duration) err
 	svr := s.prepare(addr)
 	errChan := make(chan error)
 	go func() {
+		s.Logger.Info("start server")
 		if err := svr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 		} else {
@@ -104,11 +120,14 @@ func (s *Server) RunWithShutdown(addr string, shutdownTimeout time.Duration) err
 
 		select {
 		case <-ctx.Done():
+			s.Logger.Info("shutdown server")
 			return ctx.Err()
 		case err := <-errChan:
+			s.Logger.Info("shutdown server")
 			return err
 		}
 	case err := <-errChan:
+		s.Logger.Info("shutdown server")
 		return err
 	}
 }
@@ -140,25 +159,37 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// catch all panics here so that the panics from handlers will not make the server crash
 	defer func() {
 		if r := recover(); r != nil {
-			// TODO: logging
+			var log logger.Logger
+			if err, ok := r.(error); ok {
+				log = s.Logger.WithError(err)
+			} else {
+				log = s.Logger.WithField("err", r)
+			}
+			log.Error("server panic")
 		}
 	}()
 
 	ctx := createContext(w, req)
+	path := req.URL.EscapedPath()
+	method := req.Method
+	log := s.Logger.WithField("path", path).WithField("method", method)
 
-	config := s.endpointConfig[req.URL.EscapedPath()]
+	config := s.endpointConfig[path]
 	if config == nil {
 		s.generalResponse(ctx, http.StatusNotFound)
+		log.Warn("not found")
 		return
 	}
 
-	service, ok := (*config)[req.Method]
+	service, ok := (*config)[method]
 	if !ok {
 		s.generalResponse(ctx, http.StatusNotFound)
+		log.Warn("not found")
 		return
 	}
 
 	ctx.serviceName = service.name
+	log.WithField("service", service.name).Debug("handle http service")
 	s.response(ctx, service.handler)
 	return
 }
