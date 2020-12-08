@@ -20,12 +20,11 @@ type Server struct {
 	errorConfig map[int]Handler
 	// service is a map of all Handler.
 	service map[string]Handler
-	// preprocessors are a collection of middlewares executed before the main handler.
+	// middleware is a collection of middlewares executed before/after the main handler.
 	// The order of the execution follows the order of every middleware in the collection.
-	preprocessors []Handler
-	// postprocessors are a collection of middlewares executed after the main handler.
-	// The order of the execution follows the order of every middleware in the collection.
-	postprocessors []Handler
+	// Use Context.Next() to continue with the next middleware
+	// and it will return after the following middlewares are executed.
+	middleware []Handler
 	// logger is the logger assigned to the Server.
 	logger logger.Logger
 	// endpointConfig is a map with endpoint as key and routerConfig as value.
@@ -166,7 +165,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	ctx := createContext(w, req)
+	ctx := createContext(w, req, s.middleware)
 	path := req.URL.EscapedPath()
 	method := req.Method
 	log := s.logger.WithField("path", path).WithField("method", method)
@@ -191,43 +190,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-// preprocess executes preprocessors on the context.
-func (s *Server) preprocess(context *Context) {
-	for _, h := range s.preprocessors {
-		h(context)
-		if context.isInterrupted {
-			return
-		}
-	}
-}
-
-// postprocess executes postprocessors on the context.
-func (s *Server) postprocess(context *Context) {
-	if context.isInterrupted {
-		return
-	}
-	for _, h := range s.postprocessors {
-		h(context)
-		if context.isInterrupted {
-			return
-		}
-	}
-}
-
 // response generates HTTP response using the handler.
 // ServeHTTP must return after calling this method.
 func (s *Server) response(context *Context, handler Handler) {
 	defer context.write()
 
-	s.preprocess(context)
-	if context.isInterrupted {
-		return
-	}
-	handler(context)
-	if context.isInterrupted {
-		return
-	}
-	s.postprocess(context)
+	context.handlerSeq = append(context.handlerSeq, handler)
+	context.run()
 }
 
 // generalResponse generates error messages depending on the status code.
@@ -236,17 +205,6 @@ func (s *Server) generalResponse(context *Context, statusCode int) {
 	defer context.write()
 
 	context.StatusCode = statusCode
-	s.preprocess(context)
-	if context.isInterrupted {
-		return
-	}
-	if handler, ok := s.errorConfig[statusCode]; ok {
-		handler(context)
-		if context.isInterrupted {
-			return
-		}
-	}
-	s.postprocess(context)
 }
 
 // Handler is a function that handles the Service.
