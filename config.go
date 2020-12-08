@@ -28,3 +28,8 @@ func (c *Config) Add(path string, method string, service string) {
 	}
 	(*c)[Endpoint{Path: path, Method: method}] = service
 }
+
+// Get gets service name of the specific path and method.
+func (c *Config) Get(path string, method string) string {
+	return (*c)[Endpoint{Path: path, Method: method}]
+}

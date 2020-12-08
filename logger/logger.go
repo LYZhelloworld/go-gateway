@@ -42,7 +42,7 @@ func GetDefaultLogger() Logger {
 	return defaultLogger
 }
 
-// GetDefaultLogger gets root logger with specified config.
+// GetLoggerWithConfig gets logger with specified config.
 func GetLoggerWithConfig(writer io.Writer, level Level) Logger {
 	return &loggerImpl{
 		lowestLevel: level,
