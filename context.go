@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"net/http"
+
+	"github.com/LYZhelloworld/gateway/logger"
 )
 
 // Context is the context of a request.
@@ -16,6 +18,8 @@ type Context struct {
 	Header http.Header
 	// Data is a map that holds data of any type for value exchange between middlewares and main handler.
 	Data map[string]interface{}
+	// Logger is the current logger used in this context.
+	Logger logger.Logger
 
 	// serviceName is the name of the Service of the request.
 	serviceName string
@@ -31,16 +35,17 @@ type Context struct {
 }
 
 // createContext creates an empty Context.
-func createContext(w http.ResponseWriter, req *http.Request, middleware []Handler) *Context {
+func createContext(w http.ResponseWriter, req *http.Request, server *Server) *Context {
 	ctx := &Context{
 		Request:        req,
 		StatusCode:     http.StatusOK,
 		Header:         map[string][]string{},
 		Data:           map[string]interface{}{},
+		Logger:         server.logger,
 		responseWriter: w,
 	}
-	ctx.handlerSeq = make([]Handler, 0, len(middleware) + 1)
-	for _, m := range middleware {
+	ctx.handlerSeq = make([]Handler, 0, len(server.middleware)+1)
+	for _, m := range server.middleware {
 		ctx.handlerSeq = append(ctx.handlerSeq, m)
 	}
 	return ctx
@@ -95,7 +100,10 @@ func (c *Context) isDone() bool {
 // Next continues with the next handler, and will return if the following handlers have been run.
 func (c *Context) Next() {
 	c.handlerCounter++
-	c.runCurrentHandler()
+	for ; !c.isDone(); {
+		c.runCurrentHandler()
+	}
+
 }
 
 // GetServiceName gets Service name of the request.

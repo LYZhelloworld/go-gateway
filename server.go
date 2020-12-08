@@ -165,7 +165,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	ctx := createContext(w, req, s.middleware)
+	ctx := createContext(w, req, s)
 	path := req.URL.EscapedPath()
 	method := req.Method
 	log := s.logger.WithField("path", path).WithField("method", method)
