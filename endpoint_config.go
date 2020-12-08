@@ -2,11 +2,11 @@ package gateway
 
 import "strings"
 
-// EndpointConfig is a map that matches string endpoint to routerConfig.
-type EndpointConfig map[string]*routerConfig
+// endpointConfig is a map that matches string endpoint to routerConfig.
+type endpointConfig map[string]*routerConfig
 
 // getEndpointConfig gets corresponding endpoint Config from the Server.
-func (e *EndpointConfig) get(path string) *routerConfig {
+func (e *endpointConfig) get(path string) *routerConfig {
 	// remove trailing slash
 	path = strings.TrimSuffix(path, "/")
 	if config, ok := (*e)[path]; ok {
@@ -21,3 +21,6 @@ func (e *EndpointConfig) get(path string) *routerConfig {
 		return nil
 	}
 }
+
+// routerConfig holds Service for different methods, with method string as the key
+type routerConfig map[string]serviceInfo

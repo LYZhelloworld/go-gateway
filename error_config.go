@@ -1,9 +1,12 @@
 package gateway
 
-// ErrorConfig is a map that matches status codes to Handler.
-type ErrorConfig map[int]Handler
+// SetErrorHandler sets error handler of the given HTTP status code.
+func (s *Server) SetErrorHandler(status int, handler Handler) {
+	checkNonNilHandler(handler)
+	s.errorConfig[status] = handler
+}
 
-// Add registers a Handler with a specific status code.
-func (e *ErrorConfig) Add(status int, handler Handler) {
-	(*e)[status] = handler
+// RemoveErrorHandler removes error handler of the given HTTP status code.
+func (s *Server) RemoveErrorHandler(status int) {
+	delete(s.errorConfig, status)
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func TestServer_MatchService(t *testing.T) {
-	svr := Server{Service: Service{
+	svr := Server{service: Service{
 		"foo": nil, "foo.bar.baz": nil, "foo.baz": nil,
 	}}
 	name, _ := svr.matchService("foo")
@@ -23,7 +23,7 @@ func TestServer_MatchService(t *testing.T) {
 	name, _ = svr.matchService("bar")
 	assert.Equal(t, "", name)
 
-	svr = Server{Service: Service{
+	svr = Server{service: Service{
 		"foo": nil, "foo.bar.baz": nil, "foo.baz": nil, "*": nil,
 	}}
 	name, _ = svr.matchService("bar")

@@ -14,55 +14,52 @@ import (
 
 // Server is a struct for HTTP router.
 type Server struct {
-	// Config is the configuration mapping endpoints and methods to Service.
-	Config Config
-	// ErrorConfig is a map that matches status codes to Handler.
-	ErrorConfig ErrorConfig
-	// Service is a map of all Handler.
-	Service Service
-	// Preprocessors are a collection of middlewares executed before the main handler.
+	// config is the configuration mapping endpoints and methods to service.
+	config Config
+	// errorConfig is a map that matches status codes to Handler.
+	errorConfig map[int]Handler
+	// service is a map of all Handler.
+	service map[string]Handler
+	// preprocessors are a collection of middlewares executed before the main handler.
 	// The order of the execution follows the order of every middleware in the collection.
-	Preprocessors Middleware
-	// Postprocessors are a collection of middlewares executed after the main handler.
+	preprocessors []Handler
+	// postprocessors are a collection of middlewares executed after the main handler.
 	// The order of the execution follows the order of every middleware in the collection.
-	Postprocessors Middleware
-	// Logger is the logger assigned to the Server.
-	Logger logger.Logger
-
+	postprocessors []Handler
+	// logger is the logger assigned to the Server.
+	logger logger.Logger
 	// endpointConfig is a map with endpoint as key and routerConfig as value.
-	endpointConfig EndpointConfig
+	endpointConfig endpointConfig
 }
 
 // Default creates a default Server without any configurations.
 func Default() *Server {
 	return &Server{
-		Config:         Config{},
-		ErrorConfig:    ErrorConfig{},
-		Service:        Service{},
-		Preprocessors:  Middleware{},
-		Postprocessors: Middleware{},
-		Logger:         logger.GetDefaultLogger(),
+		config:      Config{},
+		errorConfig: map[int]Handler{},
+		service:     map[string]Handler{},
+		logger:      logger.GetDefaultLogger(),
 	}
 }
 
 // prepare sets all configurations before running.
 func (s *Server) prepare(addr string) *http.Server {
-	if s.Config == nil {
-		s.Config = Config{}
-		s.Logger.Warn("Config is nil. Use empty Config instead.")
+	if s.config == nil {
+		s.config = Config{}
+		s.logger.Warn("config is nil. Use empty config instead.")
 	}
 
-	if s.ErrorConfig == nil {
-		s.ErrorConfig = ErrorConfig{}
-		s.Logger.Warn("ErrorConfig is nil. Use empty ErrorConfig instead.")
+	if s.errorConfig == nil {
+		s.errorConfig = map[int]Handler{}
+		s.logger.Warn("errorConfig is nil. Use empty errorConfig instead.")
 	}
 
-	// parse Service
-	s.endpointConfig = EndpointConfig{}
-	for endpoint, name := range s.Config {
+	// parse service
+	s.endpointConfig = endpointConfig{}
+	for endpoint, name := range s.config {
 		matchedName, handler := s.matchService(name)
 		if handler == nil {
-			s.Logger.WithField("endpoint", endpoint.Path).
+			s.logger.WithField("endpoint", endpoint.Path).
 				WithField("method", endpoint.Method).
 				WithField("service", name).Fatal("handler not found")
 			panic(fmt.Sprintf("handler not found: %s", name))
@@ -71,7 +68,7 @@ func (s *Server) prepare(addr string) *http.Server {
 			s.endpointConfig[endpoint.Path] = &routerConfig{}
 		}
 		(*s.endpointConfig[endpoint.Path])[endpoint.Method] = serviceInfo{name: matchedName, handler: handler}
-		s.Logger.WithField("endpoint", endpoint.Path).
+		s.logger.WithField("endpoint", endpoint.Path).
 			WithField("method", endpoint.Method).
 			WithField("service", matchedName).
 			Info("service matched")
@@ -87,7 +84,7 @@ func (s *Server) prepare(addr string) *http.Server {
 // Run starts the server with the current Config.
 func (s *Server) Run(addr string) error {
 	svr := s.prepare(addr)
-	s.Logger.Info("start server")
+	s.logger.Info("start server")
 	return svr.ListenAndServe()
 }
 
@@ -97,7 +94,7 @@ func (s *Server) RunWithShutdown(addr string, shutdownTimeout time.Duration) err
 	svr := s.prepare(addr)
 	errChan := make(chan error)
 	go func() {
-		s.Logger.Info("start server")
+		s.logger.Info("start server")
 		if err := svr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errChan <- err
 		} else {
@@ -120,14 +117,14 @@ func (s *Server) RunWithShutdown(addr string, shutdownTimeout time.Duration) err
 
 		select {
 		case <-ctx.Done():
-			s.Logger.Info("shutdown server")
+			s.logger.Info("shutdown server")
 			return ctx.Err()
 		case err := <-errChan:
-			s.Logger.Info("shutdown server")
+			s.logger.Info("shutdown server")
 			return err
 		}
 	case err := <-errChan:
-		s.Logger.Info("shutdown server")
+		s.logger.Info("shutdown server")
 		return err
 	}
 }
@@ -139,15 +136,15 @@ func (s *Server) RunWithShutdown(addr string, shutdownTimeout time.Duration) err
 //
 // The Service "foo" will be matched.
 // The Service "foo.bar.baz" is more specific than the given one.
-// The Service "foo.baz" has different sub-Service "baz".
+// The Service "foo.baz" has different sub-service "baz".
 func (s *Server) matchService(name string) (string, Handler) {
 	for thisName := name; thisName != ""; thisName = removeLastSubService(thisName) {
-		if srv, ok := s.Service[thisName]; ok {
+		if srv, ok := s.service[thisName]; ok {
 			return thisName, srv
 		}
 	}
 
-	if srv, ok := s.Service[baseServiceHandler]; ok {
+	if srv, ok := s.service[baseServiceHandler]; ok {
 		return baseServiceHandler, srv
 	} else {
 		return "", nil
@@ -161,9 +158,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		if r := recover(); r != nil {
 			var log logger.Logger
 			if err, ok := r.(error); ok {
-				log = s.Logger.WithError(err)
+				log = s.logger.WithError(err)
 			} else {
-				log = s.Logger.WithField("err", r)
+				log = s.logger.WithField("err", r)
 			}
 			log.Error("server panic")
 		}
@@ -172,7 +169,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := createContext(w, req)
 	path := req.URL.EscapedPath()
 	method := req.Method
-	log := s.Logger.WithField("path", path).WithField("method", method)
+	log := s.logger.WithField("path", path).WithField("method", method)
 
 	config := s.endpointConfig[path]
 	if config == nil {
@@ -194,9 +191,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-// preprocess executes Preprocessors on the context.
+// preprocess executes preprocessors on the context.
 func (s *Server) preprocess(context *Context) {
-	for _, h := range s.Preprocessors.handlers {
+	for _, h := range s.preprocessors {
 		h(context)
 		if context.isInterrupted {
 			return
@@ -204,12 +201,12 @@ func (s *Server) preprocess(context *Context) {
 	}
 }
 
-// postprocess executes Postprocessors on the context.
+// postprocess executes postprocessors on the context.
 func (s *Server) postprocess(context *Context) {
 	if context.isInterrupted {
 		return
 	}
-	for _, h := range s.Postprocessors.handlers {
+	for _, h := range s.postprocessors {
 		h(context)
 		if context.isInterrupted {
 			return
@@ -243,7 +240,7 @@ func (s *Server) generalResponse(context *Context, statusCode int) {
 	if context.isInterrupted {
 		return
 	}
-	if handler, ok := s.ErrorConfig[statusCode]; ok {
+	if handler, ok := s.errorConfig[statusCode]; ok {
 		handler(context)
 		if context.isInterrupted {
 			return
@@ -251,3 +248,6 @@ func (s *Server) generalResponse(context *Context, statusCode int) {
 	}
 	s.postprocess(context)
 }
+
+// Handler is a function that handles the Service.
+type Handler func(context *Context)

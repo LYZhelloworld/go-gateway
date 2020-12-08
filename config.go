@@ -24,7 +24,7 @@ func (c *Config) Add(path string, method string, service string) {
 		panic("invalid path")
 	}
 	if service == baseServiceHandler || !isValidService(service) {
-		panic("invalid Service")
+		panic("invalid service")
 	}
 	(*c)[Endpoint{Path: path, Method: method}] = service
 }
@@ -32,4 +32,15 @@ func (c *Config) Add(path string, method string, service string) {
 // Get gets service name of the specific path and method.
 func (c *Config) Get(path string, method string) string {
 	return (*c)[Endpoint{Path: path, Method: method}]
+}
+
+// UseConfig applies Config to the Server.
+func (s *Server) UseConfig(config Config) {
+	s.config = config
+}
+
+// Endpoint is a struct of path and method.
+type Endpoint struct {
+	Path   string
+	Method string
 }

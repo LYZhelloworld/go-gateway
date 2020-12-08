@@ -44,7 +44,7 @@ func isValidService(serviceName string) bool {
 	return serviceName == baseServiceHandler || serviceRegexp.MatchString(serviceName)
 }
 
-// removeLastSubService removes last sub-Service of a Service name.
+// removeLastSubService removes last sub-service of a Service name.
 // For example: removeLastSubService("foo.bar.baz") gives "foo.bar".
 // removeLastSubService("foo") gives empty string.
 func removeLastSubService(serviceName string) string {
@@ -53,4 +53,11 @@ func removeLastSubService(serviceName string) string {
 		return ""
 	}
 	return serviceName[:idx]
+}
+
+// checkNonNilHandler checks if the handler is nil, and panics if so.
+func checkNonNilHandler(handler Handler) {
+	if handler == nil {
+		panic("nil handler")
+	}
 }

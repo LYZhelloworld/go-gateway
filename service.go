@@ -1,5 +1,7 @@
 package gateway
 
+// Register registers a service.
+//
 // Service is the configuration of one Service.
 // The key is the identifier of the Service, separated by dots, with parent Service before sub Service.
 // For example: "foo.bar.baz".
@@ -11,15 +13,10 @@ package gateway
 // But "foo.bar.baz" cannot handle "foo.bar".
 //
 // An asterisk (*) means a Service handler for all Service, if there is no other Service that are more specific.
-type Service map[string]Handler
-
-// Add registers a Service.
-func (s *Service) Add(name string, handler Handler) {
-	if handler == nil {
-		panic("nil handler")
-	}
+func (s *Server) Register(name string, handler Handler) {
+	checkNonNilHandler(handler)
 	if !isValidService(name) {
-		panic("invalid Service")
+		panic("invalid service")
 	}
-	(*s)[name] = handler
+	s.service[name] = handler
 }

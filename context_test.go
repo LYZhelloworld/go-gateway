@@ -62,7 +62,7 @@ func TestContext_Write(t *testing.T) {
 }
 
 func TestContext_GetServiceName(t *testing.T) {
-	const serviceName = "test.Service.name"
+	const serviceName = "test.service.name"
 	c := Context{serviceName: serviceName}
 	assert.EqualValues(t, serviceName, c.GetServiceName())
 }
