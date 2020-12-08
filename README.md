@@ -59,9 +59,12 @@ A service with name `*` will handle all requests if no other service handler exi
 
 `Context.Header` contains headers of the response.
 
-## Preprocessors and Postprocessors
-Preprocessors will be executed before a request, similarly, postprocessors after a request.
+## Middleware
+Middleware will be executed before/after a request.
 They share the same context during the request flow.
 
-You can call `Context.Interrupt()` at any time inside these handlers.
-After the handler returns, the following handlers will not be executed, but the response will still be written.
+During the execution of a middleware, you can call `Context.Next()` to continue with the following middlewares.
+The function will return after all the following middlewares (including the main handler) have been executed.
+
+You can call `Context.Interrupt()` at any time inside these middlewares.
+After the middleware returns, the following middlewares will not be executed, but the response will still be written.

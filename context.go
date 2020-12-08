@@ -2,6 +2,8 @@ package gateway
 
 import (
 	"net/http"
+
+	"github.com/LYZhelloworld/gateway/logger"
 )
 
 // Context is the context of a request.
@@ -16,6 +18,8 @@ type Context struct {
 	Header http.Header
 	// Data is a map that holds data of any type for value exchange between middlewares and main handler.
 	Data map[string]interface{}
+	// Logger is the current logger used in this context.
+	Logger logger.Logger
 
 	// serviceName is the name of the Service of the request.
 	serviceName string
@@ -23,19 +27,28 @@ type Context struct {
 	responseWriter http.ResponseWriter
 	// isWritten is a flag shows whether the response has been written to the http.ResponseWriter.
 	isWritten bool
-	// isInterrupted is a flag shows whether the execution of handler chain is interrupted.
-	isInterrupted bool
+
+	// handlerSeq is a pointer to the handlers going to be run.
+	handlerSeq []Handler
+	// handlerCounter is a counter of the current handler.
+	handlerCounter int
 }
 
 // createContext creates an empty Context.
-func createContext(w http.ResponseWriter, req *http.Request) *Context {
-	return &Context{
+func createContext(w http.ResponseWriter, req *http.Request, server *Server) *Context {
+	ctx := &Context{
 		Request:        req,
 		StatusCode:     http.StatusOK,
 		Header:         map[string][]string{},
 		Data:           map[string]interface{}{},
+		Logger:         server.logger,
 		responseWriter: w,
 	}
+	ctx.handlerSeq = make([]Handler, 0, len(server.middleware)+1)
+	for _, m := range server.middleware {
+		ctx.handlerSeq = append(ctx.handlerSeq, m)
+	}
+	return ctx
 }
 
 // write writes response to the http.ResponseWriter.
@@ -59,6 +72,40 @@ func (c *Context) write() {
 	}
 }
 
+// run runs all handlers.
+func (c *Context) run() {
+	for c.handlerCounter = 0; !c.isDone(); {
+		c.runCurrentHandler()
+	}
+}
+
+// runCurrentHandler runs handler based on the handlerCounter.
+func (c *Context) runCurrentHandler() {
+	if !c.isDone() {
+		oldCounter := c.handlerCounter
+		c.handlerSeq[c.handlerCounter](c)
+		// after running handler, the counter should increase at least once
+		// if not, increase it manually
+		if c.handlerCounter == oldCounter {
+			c.handlerCounter++
+		}
+	}
+}
+
+// isDone checks if the current Context has run all the middlewares or has been interrupted.
+func (c *Context) isDone() bool {
+	return c.handlerCounter >= len(c.handlerSeq)
+}
+
+// Next continues with the next handler, and will return if the following handlers have been run.
+func (c *Context) Next() {
+	c.handlerCounter++
+	for ; !c.isDone(); {
+		c.runCurrentHandler()
+	}
+
+}
+
 // GetServiceName gets Service name of the request.
 func (c *Context) GetServiceName() string {
 	return c.serviceName
@@ -68,5 +115,5 @@ func (c *Context) GetServiceName() string {
 // This method can be used in either pre-/post-processors or the main handler.
 // Calling this method multiple times does not have side effects.
 func (c *Context) Interrupt() {
-	c.isInterrupted = true
+	c.handlerCounter = len(c.handlerSeq)
 }
