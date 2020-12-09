@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/LYZhelloworld/gateway"
+	"github.com/LYZhelloworld/gateway/middleware"
 )
 
 // This example shows how the middleware works.
@@ -25,7 +26,7 @@ func main() {
 		context.Response = []byte("hello, world")
 		context.Logger.Info("body end")
 	})
-	s.UseMiddlewares(func(context *gateway.Context) {
+	s.UseMiddlewares(middleware.Logger(), func(context *gateway.Context) {
 		context.Logger.Info("middleware 1")
 	}, func(context *gateway.Context) {
 		context.Logger.Info("middleware 2 start")

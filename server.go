@@ -31,7 +31,7 @@ type Server struct {
 	endpointConfig endpointConfig
 }
 
-// Default creates a default Server without any configurations.
+// Default creates a Server with default configurations.
 func Default() *Server {
 	return &Server{
 		config:      Config{},
@@ -168,24 +168,20 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := createContext(w, req, s)
 	path := req.URL.EscapedPath()
 	method := req.Method
-	log := s.logger.WithField("path", path).WithField("method", method)
 
 	config := s.endpointConfig[path]
 	if config == nil {
 		s.generalResponse(ctx, http.StatusNotFound)
-		log.Warn("not found")
 		return
 	}
 
 	service, ok := (*config)[method]
 	if !ok {
 		s.generalResponse(ctx, http.StatusNotFound)
-		log.Warn("not found")
 		return
 	}
 
 	ctx.serviceName = service.name
-	log.WithField("service", service.name).Debug("handle http service")
 	s.response(ctx, service.handler)
 	return
 }
