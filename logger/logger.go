@@ -52,4 +52,9 @@ func GetLoggerWithConfig(writer io.Writer, level Level) Logger {
 	}
 }
 
+// GetNopLogger gets a dummy logger, toggling off all logging functions.
+func GetNopLogger() Logger {
+	return &nopLoggerImpl{}
+}
+
 var defaultLogger = GetLoggerWithConfig(os.Stderr, Trace)

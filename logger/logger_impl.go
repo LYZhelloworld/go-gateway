@@ -30,7 +30,6 @@ func (l loggerImpl) getDataFields() string {
 	return msg
 }
 
-// Enabled returns if the specific level is enabled.
 func (l loggerImpl) Enabled(level Level) bool {
 	return l.lowestLevel <= level
 }
@@ -40,7 +39,6 @@ func (l loggerImpl) outputWithLevel(level string, msg string) {
 	_, _ = l.w.Write([]byte(fmt.Sprintf("%s|%s|%s%s\n", now, level, l.getDataFields(), msg)))
 }
 
-// Trace outputs log in TRACE level.
 func (l loggerImpl) Trace(msg string) {
 	if l.Enabled(Trace) {
 		l.outputWithLevel("TRACE", msg)
