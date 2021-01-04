@@ -1,6 +1,6 @@
 package middleware
 
-import "github.com/LYZhelloworld/gateway"
+import "github.com/LYZhelloworld/go-gateway"
 
 // Logger provides a default middleware for logging requests and responses.
 func Logger() gateway.Handler {

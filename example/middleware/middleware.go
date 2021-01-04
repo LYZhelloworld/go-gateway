@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/LYZhelloworld/gateway"
-	"github.com/LYZhelloworld/gateway/middleware"
+	"github.com/LYZhelloworld/go-gateway"
+	"github.com/LYZhelloworld/go-gateway/middleware"
 )
 
 // This example shows how the middleware works.

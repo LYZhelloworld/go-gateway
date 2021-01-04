@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/LYZhelloworld/gateway"
+	"github.com/LYZhelloworld/go-gateway"
 )
 
 func main() {

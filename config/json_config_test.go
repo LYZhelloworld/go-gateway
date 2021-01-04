@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	"github.com/LYZhelloworld/gateway"
+	"github.com/LYZhelloworld/go-gateway"
 	"github.com/stretchr/testify/assert"
 )
 

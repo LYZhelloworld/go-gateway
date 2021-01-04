@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/LYZhelloworld/gateway"
+	"github.com/LYZhelloworld/go-gateway"
 )
 
 type jsonConfig struct {

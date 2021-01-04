@@ -48,7 +48,6 @@ func TestContext_Write(t *testing.T) {
 		serviceName:    "",
 		responseWriter: rw,
 		isWritten:      false,
-		isInterrupted:  false,
 	}
 	c.write()
 
@@ -65,11 +64,4 @@ func TestContext_GetServiceName(t *testing.T) {
 	const serviceName = "test.service.name"
 	c := Context{serviceName: serviceName}
 	assert.EqualValues(t, serviceName, c.GetServiceName())
-}
-
-func TestContext_Interrupt(t *testing.T) {
-	c := Context{}
-	assert.False(t, c.isInterrupted)
-	c.Interrupt()
-	assert.True(t, c.isInterrupted)
 }

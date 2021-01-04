@@ -1,6 +1,6 @@
 package gateway
 
-import "github.com/LYZhelloworld/gateway/logger"
+import "github.com/LYZhelloworld/go-logger"
 
 // AttachLogger attaches logger to the Server.
 func (s *Server) AttachLogger(logger logger.Logger) {

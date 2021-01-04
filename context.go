@@ -3,7 +3,7 @@ package gateway
 import (
 	"net/http"
 
-	"github.com/LYZhelloworld/gateway/logger"
+	"github.com/LYZhelloworld/go-logger"
 )
 
 // Context is the context of a request.

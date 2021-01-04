@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/LYZhelloworld/gateway/logger"
+	"github.com/LYZhelloworld/go-logger"
 )
 
 // Server is a struct for HTTP router.
